@@ -317,6 +317,9 @@ func OpenInitial(possib *Possibilities, rules *Rules) {
 		if r.ApplyOnStart() {
 			r.Apply(possib)
 		}
+		if oi, ok := r.(interface{ OpenInitials(*Possibilities) }); ok {
+			oi.OpenInitials(possib)
+		}
 	}
 }
 
