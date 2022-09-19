@@ -9,19 +9,17 @@ type OptionsChangedCommand struct {
 	niceCursor *bool
 	volume     *float32
 	oldVolume  float32
-	area       *Area
 }
 
 var _ Command = (*OptionsChangedCommand)(nil)
 
-func NewOptionsChangedCommand(a *Area, fs *bool, ns *bool, v *float32) *OptionsChangedCommand {
+func NewOptionsChangedCommand(fs *bool, ns *bool, v *float32) *OptionsChangedCommand {
 	o := &OptionsChangedCommand{
 		fullscreen: fs,
 		niceCursor: ns,
 		volume:     v,
 		oldVolume:  *v,
 	}
-	o.area = a
 	return o
 }
 
@@ -47,7 +45,6 @@ func (o *OptionsChangedCommand) DoAction() {
 		sound.SetVolume(*o.volume)
 	}
 	GetStorage().Flush()
-	o.area.FinishEventLoop()
 }
 
 func ShowOptionsWindow(parentArea *Area) {
@@ -80,8 +77,11 @@ func ShowOptionsWindow(parentArea *Area) {
 	area.Add(NewLabelAligh(font, 265, 330, 300, 20, ALIGN_LEFT, ALIGN_MIDDLE, 255, 255, 255, msg("volume")))
 	area.Add(NewSlider(360, 332, 160, 16, &volume))
 
-	exitCmd := NewExitCommand(area)
-	okCmd := NewOptionsChangedCommand(area, &fullscreen, &niceCursor, &volume)
+	exitCmd := area.FinishCommand()
+	okCmd := Combine(
+		NewOptionsChangedCommand(&fullscreen, &niceCursor, &volume),
+		exitCmd,
+	)
 	area.Add(NewButtonText(315, 390, 85, 25, font, 255, 255, 0, "blue.bmp", msg("ok"), okCmd))
 	area.Add(NewButtonText(405, 390, 85, 25, font, 255, 255, 0, "blue.bmp", msg("cancel"), exitCmd))
 	area.Add(NewKeyAccel(sdl.K_ESCAPE, exitCmd))

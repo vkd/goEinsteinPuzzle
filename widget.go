@@ -416,21 +416,31 @@ func (a *Area) UpdateMouse() {
 	}
 }
 
-type ExitCommand struct {
-	area *Area
+func (a *Area) FinishCommand() Command {
+	return FnCommand(a.FinishEventLoop)
 }
 
-var _ Command = (*ExitCommand)(nil)
+func NewExitCommand(a *Area) Command {
+	return FnCommand(a.FinishEventLoop)
+}
 
-func NewExitCommand(a *Area) *ExitCommand {
-	return &ExitCommand{
-		area: a,
+type FnCommand func()
+
+var _ Command = FnCommand(nil)
+
+func (f FnCommand) DoAction() { f() }
+
+type Commands []Command
+
+var _ Command = Commands(nil)
+
+func (c Commands) DoAction() {
+	for _, cmd := range c {
+		cmd.DoAction()
 	}
 }
 
-func (e *ExitCommand) DoAction() {
-	e.area.FinishEventLoop()
-}
+func Combine(cs ...Command) Command { return Commands(cs) }
 
 type AnyKeyAccel struct {
 	Widget
