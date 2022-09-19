@@ -432,7 +432,9 @@ func NewGame() *Game {
 }
 
 func NewGameStream(stream io.Reader) *Game {
-	g := &Game{}
+	g := &Game{
+		iconSet: NewIconSet(),
+	}
 	g.PleaseWait()
 
 	LoadPuzzle(&g.solvedPuzzle, stream)
