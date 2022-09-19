@@ -98,7 +98,7 @@ func NewSaveCommand(sg *SavedGame, f *Font, area *Area, s *bool, dflt string, g 
 func (s *SaveCommand) DoAction() {
 	area := NewArea()
 	area.AddManaged(s.parentArea, false)
-	area.Add(NewWindow(0, 280, 460, 100, "blue.bmp"))
+	area.Add(NewWindow(170, 280, 460, 100, "blue.bmp"))
 	var name string
 	if s.savedGame.IsExists() {
 		name = s.savedGame.GetName()
