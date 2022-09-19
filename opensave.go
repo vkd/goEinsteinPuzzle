@@ -26,6 +26,9 @@ func NewSavedGameFile(s string) *SavedGame {
 
 	bs, err := os.ReadFile(sg.fileName)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return sg
+		}
 		panic(fmt.Errorf("read saved file (filename: %q): %w", sg.fileName, err))
 	}
 	sg.name = ReadString(bytes.NewReader(bs))
@@ -98,7 +101,7 @@ func NewSaveCommand(sg *SavedGame, f *Font, area *Area, s *bool, dflt string, g 
 func (s *SaveCommand) DoAction() {
 	area := NewArea()
 	area.AddManaged(s.parentArea, false)
-	area.Add(NewWindow(0, 280, 460, 100, "blue.bmp"))
+	area.Add(NewWindow(170, 280, 460, 100, "blue.bmp"))
 	var name string
 	if s.savedGame.IsExists() {
 		name = s.savedGame.GetName()
@@ -190,12 +193,12 @@ type LoadCommand struct {
 	// saved       *bool
 	font *Font
 	// defaultName string
-	game *Game
+	game **Game
 }
 
 var _ Command = (*LoadCommand)(nil)
 
-func NewLoadCommand(sg *SavedGame, f *Font, area *Area, g *Game) *LoadCommand {
+func NewLoadCommand(sg *SavedGame, f *Font, area *Area, g **Game) *LoadCommand {
 	l := &LoadCommand{
 		savedGame: sg,
 	}
@@ -213,7 +216,7 @@ func (l *LoadCommand) DoAction() {
 	stream := bytes.NewReader(bs)
 	ReadString(stream)
 	g := NewGameStream(stream)
-	l.game = g
+	*l.game = g
 
 	l.parentArea.FinishEventLoop()
 }
@@ -233,7 +236,7 @@ func LoadGame(parentArea *Area) *Game {
 		sg := NewSavedGameFile(filepath.Join(path, ToString(i)+".sav"))
 		list = append(list, sg)
 		if sg.IsExists() {
-			commands[i] = NewLoadCommand(list[i], font, area, newGame)
+			commands[i] = NewLoadCommand(list[i], font, area, &newGame)
 		} else {
 			commands[i] = nil
 		}
