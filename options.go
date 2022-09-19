@@ -8,6 +8,7 @@ type OptionsChangedCommand struct {
 	fullscreen *bool
 	niceCursor *bool
 	volume     *float32
+	oldVolume  float32
 	area       *Area
 }
 
@@ -18,6 +19,7 @@ func NewOptionsChangedCommand(a *Area, fs *bool, ns *bool, v *float32) *OptionsC
 		fullscreen: fs,
 		niceCursor: ns,
 		volume:     v,
+		oldVolume:  *v,
 	}
 	o.area = a
 	return o
@@ -32,7 +34,6 @@ func (o *OptionsChangedCommand) DoAction() {
 	}
 	oldFullscreen := screen.fullScreen
 	oldCursor := screen.niceCursor
-	oldVolume := sound.volume
 	if *o.fullscreen != oldFullscreen {
 		GetStorage().SetInt("fullscreen", bool2Int(*o.fullscreen))
 		screen.SetMode(NewVideoMode(800, 600, 24, *o.fullscreen))
@@ -41,7 +42,7 @@ func (o *OptionsChangedCommand) DoAction() {
 		GetStorage().SetInt("niceCursor", bool2Int(*o.niceCursor))
 		screen.SetCursor(*o.niceCursor)
 	}
-	if *o.volume != oldVolume {
+	if *o.volume != o.oldVolume {
 		GetStorage().SetInt("volume", int(*o.volume*100.0))
 		sound.SetVolume(*o.volume)
 	}
