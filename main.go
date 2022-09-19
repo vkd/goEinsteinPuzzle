@@ -27,7 +27,7 @@ func initScreen() {
 		panic(fmt.Errorf("Error initializing font engine: %w", err))
 	}
 	atexit = append(atexit, ttf.Quit)
-	screen.SetMode(NewVideoMode(800, 600, 24, GetStorage().GetInt("fullscreen", 0) > 0))
+	screen.SetMode(NewVideoMode(800, 600, 24, options.Fullscreen.Value()))
 	screen.InitCursors()
 
 	mouse := LoadImage("cursor.bmp")
@@ -36,7 +36,7 @@ func initScreen() {
 	SDL_FreeSurface(mouse)
 	// SDL_WM_SetCaption("Einstein", NULL)
 
-	screen.SetCursor(GetStorage().GetInt("niceCursor", 1) > 0)
+	screen.SetCursor(options.NiceCursor.Value())
 }
 
 func initAudio() {

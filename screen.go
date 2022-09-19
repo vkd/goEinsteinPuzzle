@@ -74,6 +74,12 @@ func (s *Screen) GetVideoMode() VideoMode {
 	return NewVideoMode(s.screen.W, s.screen.H, s.screen.Format.BitsPerPixel, s.fullScreen)
 }
 
+func (s *Screen) SetFullscreen(isFullscreen bool) {
+	m := s.GetVideoMode()
+	m.fullScreen = isFullscreen
+	s.SetMode(m)
+}
+
 func (s *Screen) SetMode(mode VideoMode) {
 	s.fullScreen = mode.IsFullScreen()
 
