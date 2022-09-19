@@ -7,9 +7,11 @@ import (
 var options = struct {
 	Fullscreen   *BoolConfig
 	NiceCursor   *BoolConfig
+	OpenInitials *BoolConfig
 }{
 	Fullscreen:   NewBoolConfigCmd("fullscreen", false, screen.SetFullscreen),
 	NiceCursor:   NewBoolConfigCmd("niceCursor", true, screen.SetCursor),
+	OpenInitials: NewBoolConfig("openInitials", false),
 }
 
 type OptionsChangedCommand struct {
@@ -58,11 +60,12 @@ func ShowOptionsWindow(parentArea *Area) {
 	area.Add(NewWindow(250, 170, 300, 260, "blue.bmp"))
 	area.Add(NewLabelAligh(titleFont, 250, 175, 300, 40, ALIGN_CENTER, ALIGN_MIDDLE, 255, 255, 0, msg("options")))
 
-	x := int32(260)
+	x := int32(240)
 	var checkboxCommands Commands
 	for _, ch := range []*BoolConfig{
 		options.Fullscreen,
 		options.NiceCursor,
+		options.OpenInitials,
 	} {
 		OPTION(x, ch.name, &ch.value)
 		checkboxCommands = append(checkboxCommands, ch)

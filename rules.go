@@ -194,9 +194,8 @@ func (r *DirectionRule) Save(stream io.Writer) {
 	WriteInt(stream, r.thing2)
 }
 
-func (r *DirectionRule) OpenInitials(pos *Possibilities) {
-	pos.Exclude(PUZZLE_SIZE-1, r.row1, r.thing1)
-	pos.Exclude(0, r.row2, r.thing2)
+func (r *DirectionRule) OpenInitials(pos *Possibilities) bool {
+	return r.Apply(pos)
 }
 
 type OpenRule struct {
@@ -454,9 +453,17 @@ func (r *BetweenRule) Save(stream io.Writer) {
 	WriteInt(stream, r.centerThing)
 }
 
-func (r *BetweenRule) OpenInitials(pos *Possibilities) {
-	pos.Exclude(0, r.centerRow, r.centerThing)
-	pos.Exclude(PUZZLE_SIZE-1, r.centerRow, r.centerThing)
+func (r *BetweenRule) OpenInitials(pos *Possibilities) bool {
+	var out bool
+	if pos.IsPossible(0, r.centerRow, r.centerThing) {
+		pos.Exclude(0, r.centerRow, r.centerThing)
+		out = true
+	}
+	if pos.IsPossible(PUZZLE_SIZE-1, r.centerRow, r.centerThing) {
+		pos.Exclude(PUZZLE_SIZE-1, r.centerRow, r.centerThing)
+		out = true
+	}
+	return out
 }
 
 func GenRule(puzzle *SolvedPuzzle) Ruler {

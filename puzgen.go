@@ -317,8 +317,18 @@ func OpenInitial(possib *Possibilities, rules *Rules) {
 		if r.ApplyOnStart() {
 			r.Apply(possib)
 		}
-		if oi, ok := r.(interface{ OpenInitials(*Possibilities) }); ok {
-			oi.OpenInitials(possib)
+	}
+	if options.OpenInitials.value {
+		var updated bool = true
+		for updated {
+			updated = false
+			for _, r := range *rules {
+				if oi, ok := r.(interface{ OpenInitials(*Possibilities) bool }); ok {
+					if oi.OpenInitials(possib) {
+						updated = true
+					}
+				}
+			}
 		}
 	}
 }
