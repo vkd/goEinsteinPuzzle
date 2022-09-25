@@ -109,6 +109,27 @@ func (h *HorHints) DrawCellUpdate(col, row int, addToUpdate bool) {
 			r = h.rules[no]
 		}
 	}
+
+	if options.AutoHints.value {
+		if h.showExcluded {
+			if r == nil && no < len(h.rules) {
+				r = h.rules[no]
+				if r != nil {
+					switch r.(type) {
+					case *DirectionRule:
+					default:
+						r = nil
+					}
+				}
+			}
+		} else if r != nil {
+			switch r.(type) {
+			case *DirectionRule:
+				r = nil
+			}
+		}
+	}
+
 	if r != nil {
 		r.Draw(x, y, h.iconSet, no == h.highlighted)
 	} else {
@@ -143,16 +164,35 @@ func (h *HorHints) OnMouseButtonDown(button uint8, x, y int32) bool {
 			h.DrawCell(col, row)
 		}
 	} else {
-		r := h.rules[no]
-		if r != nil {
-			sound.Play("whizz.wav")
-			h.rules[no] = nil
-			h.excludedRules[no] = r
-			h.DrawCell(col, row)
-		}
+		h.Exclude(no)
 	}
 
 	return true
+}
+
+func (h *HorHints) ExcludeRule(r Ruler) {
+	rText := r.GetAsText()
+	for ri, r := range h.rules {
+		if r == nil {
+			continue
+		}
+		if r.GetAsText() == rText {
+			h.Exclude(ri)
+		}
+	}
+}
+
+func (h *HorHints) Exclude(no int) {
+	row := no / HORHINTS_HINTS_COLS
+	col := no - row*HORHINTS_HINTS_COLS
+
+	r := h.rules[no]
+	if r != nil {
+		sound.Play("whizz.wav")
+		h.rules[no] = nil
+		h.excludedRules[no] = r
+		h.DrawCell(col, row)
+	}
 }
 
 func (h *HorHints) ToggleExcluded() {

@@ -23,17 +23,24 @@ type Puzzle struct {
 	hCol, hRow              int
 	subHNo                  int
 	winCommand, failCommand Command
+
+	hinter Hinter
+}
+
+type Hinter interface {
+	AutoHint(*Possibilities)
 }
 
 func (p *Puzzle) GetPossibilities() *Possibilities { return p.possib }
 func (p *Puzzle) IsValid() bool                    { return p.valid }
 func (p *Puzzle) Victory() bool                    { return p.win }
 
-func NewPuzzle(is *IconSet, s *SolvedPuzzle, p *Possibilities) *Puzzle {
+func NewPuzzle(is *IconSet, s *SolvedPuzzle, p *Possibilities, h Hinter) *Puzzle {
 	pz := &Puzzle{}
 	pz.iconSet = is
 	pz.solved = s
 	pz.possib = p
+	pz.hinter = h
 
 	pz.Reset()
 	return pz
@@ -133,7 +140,12 @@ func (p *Puzzle) OnMouseButtonDown(button uint8, x, y int32) bool {
 			// 	p.possib.MakePossible(col, row, element)
 			// }
 		}
-		p.DrawRow(row)
+
+		if options.AutoHints.value {
+			p.hinter.AutoHint(p.possib)
+		}
+
+		p.Draw()
 	}
 
 	valid := p.possib.IsValid(p.solved)

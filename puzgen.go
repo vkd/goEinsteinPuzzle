@@ -141,6 +141,9 @@ func (p *Possibilities) IsDefined(col, row int) bool {
 }
 
 func (p *Possibilities) GetDefined(col, row int) int {
+	if !p.IsDefined(col, row) {
+		return 0
+	}
 	for i := 0; i < PUZZLE_SIZE; i++ {
 		if p.pos[col][row][i] > 0 {
 			return i + 1
@@ -216,6 +219,15 @@ func (p *Possibilities) Save(stream io.Writer) {
 			}
 		}
 	}
+}
+
+func (p *Possibilities) GetCol(row int, element int) (int, bool) {
+	for i := 0; i < PUZZLE_SIZE; i++ {
+		if p.GetDefined(i, row) == element {
+			return i, true
+		}
+	}
+	return 0, false
 }
 
 func Shuffle(arr *[PUZZLE_SIZE]int) {
@@ -312,25 +324,23 @@ func GenPuzzle(puzzle *SolvedPuzzle, rules *Rules) {
 	RemoveRules(puzzle, rules)
 }
 
-func OpenInitial(possib *Possibilities, rules *Rules) {
+func OpenInitial(possib *Possibilities, rules *Rules, re RuleExcluder) {
 	for _, r := range *rules {
 		if r.ApplyOnStart() {
 			r.Apply(possib)
 		}
 	}
-	if options.OpenInitials.value {
-		var updated bool = true
-		for updated {
-			updated = false
-			for _, r := range *rules {
-				if oi, ok := r.(interface{ OpenInitials(*Possibilities) bool }); ok {
-					if oi.OpenInitials(possib) {
-						updated = true
-					}
-				}
-			}
-		}
+	if options.AutoHints.value {
+		rules.ApplyHints(possib, re)
 	}
+}
+
+type HintApplier interface {
+	ApplyHint(*Possibilities, RuleExcluder) bool
+}
+
+type RuleExcluder interface {
+	ExcludeRule(r Ruler)
 }
 
 func GetHintsQty(rules *Rules, vert, horiz *int) {
@@ -408,3 +418,17 @@ func (r Rule) GetShowOpts() ShowOptions {
 }
 
 type Rules []Ruler
+
+func (rs *Rules) ApplyHints(pos *Possibilities, re RuleExcluder) {
+	updated := true
+	for updated {
+		updated = false
+		for _, r := range *rs {
+			if ra, ok := r.(HintApplier); ok {
+				if ra.ApplyHint(pos, re) {
+					updated = true
+				}
+			}
+		}
+	}
+}

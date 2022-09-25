@@ -393,6 +393,37 @@ func (h *HelpCommand) DoAction() {
 	h.watch.Start()
 }
 
+type hintsExcluder struct {
+	verHints *VertHints
+	horHints *HorHints
+}
+
+var _ RuleExcluder = (*hintsExcluder)(nil)
+
+func NewHintsExcluder(vh *VertHints, hh *HorHints) RuleExcluder {
+	return &hintsExcluder{vh, hh}
+}
+
+func (h *hintsExcluder) ExcludeRule(r Ruler) {
+	h.verHints.ExcludeRule(r)
+	h.horHints.ExcludeRule(r)
+}
+
+type ruleHinter struct {
+	rules        *Rules
+	ruleExcluder RuleExcluder
+}
+
+var _ Hinter = (*ruleHinter)(nil)
+
+func NewRuleHinter(rs *Rules, re RuleExcluder) Hinter {
+	return &ruleHinter{rs, re}
+}
+
+func (r *ruleHinter) AutoHint(pos *Possibilities) {
+	r.rules.ApplyHints(pos, r.ruleExcluder)
+}
+
 type Game struct {
 	solvedPuzzle      SolvedPuzzle
 	rules             Rules
@@ -421,12 +452,15 @@ func NewGame() *Game {
 	}
 	g.GenPuzzle()
 
-	g.possibilities = NewPossibilities()
-	OpenInitial(g.possibilities, &g.rules)
-
-	g.puzzle = NewPuzzle(g.iconSet, &g.solvedPuzzle, g.possibilities)
 	g.verHints = NewVertHints(g.iconSet, &g.rules)
 	g.horHints = NewHorHints(g.iconSet, &g.rules)
+	excluder := NewHintsExcluder(g.verHints, g.horHints)
+
+	g.possibilities = NewPossibilities()
+	OpenInitial(g.possibilities, &g.rules, excluder)
+
+	hinter := NewRuleHinter(&g.rules, excluder)
+	g.puzzle = NewPuzzle(g.iconSet, &g.solvedPuzzle, g.possibilities, hinter)
 	g.watch = NewWatch()
 	return g
 }
@@ -442,9 +476,11 @@ func NewGameStream(stream io.Reader) *Game {
 	g.savedSolvedPuzzle = g.solvedPuzzle
 	g.savedRules = g.rules[:]
 	g.possibilities = NewPossibilitiesStream(stream)
-	g.puzzle = NewPuzzle(g.iconSet, &g.solvedPuzzle, g.possibilities)
 	g.verHints = NewVertHintsStream(g.iconSet, &g.rules, stream)
 	g.horHints = NewHorHintsStream(g.iconSet, &g.rules, stream)
+	excluder := NewHintsExcluder(g.verHints, g.horHints)
+	hinter := NewRuleHinter(&g.rules, excluder)
+	g.puzzle = NewPuzzle(g.iconSet, &g.solvedPuzzle, g.possibilities, hinter)
 	g.watch = NewWatchStream(stream)
 	g.hinted = true
 	return g
@@ -506,10 +542,10 @@ func (g *Game) GenPuzzle() {
 
 func (g *Game) ResetVisuals() {
 	g.possibilities.Reset()
-	OpenInitial(g.possibilities, &g.rules)
 	g.puzzle.Reset()
 	g.verHints.Reset(&g.rules)
 	g.horHints.Reset(&g.rules)
+	OpenInitial(g.possibilities, &g.rules, NewHintsExcluder(g.verHints, g.horHints))
 	g.watch.Reset()
 }
 

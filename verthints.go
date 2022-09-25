@@ -104,6 +104,17 @@ func (v *VertHints) DrawCellUpdate(col int, addToUpdate bool) {
 			r = v.rules[col]
 		}
 	}
+
+	if options.AutoHints.value {
+		if v.showExcluded {
+			if r == nil && col < len(v.rules) {
+				r = v.rules[col]
+			}
+		} else {
+			r = nil
+		}
+	}
+
 	if r != nil {
 		r.Draw(x, y, v.iconSet, v.highlighted == col)
 	} else {
@@ -136,22 +147,38 @@ func (v *VertHints) OnMouseButtonDown(button uint8, x, y int32) bool {
 				v.DrawCell(no)
 			}
 		} else {
-			r := v.rules[no]
-			if r != nil {
-				sound.Play("whizz.wav")
-				v.rules[no] = nil
-				v.excludedRules[no] = r
-				v.DrawCell(no)
-			}
+			v.Exclude(no)
 		}
 	}
 
 	return true
 }
 
+func (v *VertHints) Exclude(no int) {
+	r := v.rules[no]
+	if r != nil {
+		sound.Play("whizz.wav")
+		v.rules[no] = nil
+		v.excludedRules[no] = r
+		v.DrawCell(no)
+	}
+}
+
 func (v *VertHints) ToggleExcluded() {
 	v.showExcluded = !v.showExcluded
 	v.Draw()
+}
+
+func (v *VertHints) ExcludeRule(r Ruler) {
+	rText := r.GetAsText()
+	for vi, vr := range v.rules {
+		if vr == nil {
+			continue
+		}
+		if vr.GetAsText() == rText {
+			v.Exclude(vi)
+		}
+	}
 }
 
 func (v *VertHints) OnMouseMove(x, y int32) bool {

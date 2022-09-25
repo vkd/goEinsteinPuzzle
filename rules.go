@@ -7,12 +7,29 @@ import (
 )
 
 func GetThingName(row int, thing int) string {
+	sym := func(s string) string {
+		return string([]rune(s)[thing-1])
+	}
+	m := map[int]string{
+		0: "123456",
+		1: "ABCDEF",
+		2: "ⅠⅡⅢⅣⅤⅥ",
+		3: "⚀⚁⚂⚃⚄⚅",
+		4: "△▽□◇⬠⭔",
+		5: "+−÷×=√",
+	}
+	if s, ok := m[row]; ok {
+		return sym(s)
+	}
 	var s string
 	s += string('A' + rune(row))
 	s += ToString(thing)
 	return s
 }
 
+// NearRule
+//
+// A <> 5
 type NearRule struct {
 	Rule
 
@@ -21,6 +38,7 @@ type NearRule struct {
 }
 
 var _ Ruler = (*NearRule)(nil)
+var _ HintApplier = (*NearRule)(nil)
 
 func (r *NearRule) GetShowOpts() ShowOptions { return SHOW_HORIZ }
 
@@ -99,6 +117,35 @@ func (r *NearRule) Apply(pos *Possibilities) bool {
 	return changed
 }
 
+func (r *NearRule) ApplyHint(pos *Possibilities, re RuleExcluder) bool {
+	var out bool
+	if ci, ok := pos.GetCol(r.thing1[0], r.thing1[1]); ok {
+		for i := 0; i < PUZZLE_SIZE; i++ {
+			if i != ci-1 && i != ci+1 {
+				if pos.IsPossible(i, r.thing2[0], r.thing2[1]) {
+					pos.Exclude(i, r.thing2[0], r.thing2[1])
+					out = true
+				}
+			}
+		}
+		re.ExcludeRule(r)
+		return out
+	}
+	if ci, ok := pos.GetCol(r.thing2[0], r.thing2[1]); ok {
+		for i := 0; i < PUZZLE_SIZE; i++ {
+			if i != ci-1 && i != ci+1 {
+				if pos.IsPossible(i, r.thing1[0], r.thing1[1]) {
+					pos.Exclude(i, r.thing1[0], r.thing1[1])
+					out = true
+				}
+			}
+		}
+		re.ExcludeRule(r)
+		return out
+	}
+	return out
+}
+
 func (r *NearRule) GetAsText() string {
 	return GetThingName(r.thing1[0], r.thing1[1]) + " is near to " + GetThingName(r.thing2[0], r.thing2[1])
 }
@@ -118,6 +165,9 @@ func (r *NearRule) Save(stream io.Writer) {
 	WriteInt(stream, r.thing2[1])
 }
 
+// DirectionRule
+//
+// A ... 5
 type DirectionRule struct {
 	Rule
 
@@ -126,6 +176,7 @@ type DirectionRule struct {
 }
 
 var _ Ruler = (*DirectionRule)(nil)
+var _ HintApplier = (*DirectionRule)(nil)
 
 func (r *DirectionRule) GetShowOpts() ShowOptions { return SHOW_HORIZ }
 
@@ -194,8 +245,15 @@ func (r *DirectionRule) Save(stream io.Writer) {
 	WriteInt(stream, r.thing2)
 }
 
-func (r *DirectionRule) OpenInitials(pos *Possibilities) bool {
-	return r.Apply(pos)
+func (r *DirectionRule) ApplyHint(pos *Possibilities, re RuleExcluder) bool {
+	out := r.Apply(pos)
+	if _, ok := pos.GetCol(r.row1, r.thing1); ok {
+		re.ExcludeRule(r)
+	}
+	if _, ok := pos.GetCol(r.row2, r.thing2); ok {
+		re.ExcludeRule(r)
+	}
+	return out
 }
 
 type OpenRule struct {
@@ -245,6 +303,10 @@ func (r *OpenRule) Save(stream io.Writer) {
 	WriteInt(stream, r.thing)
 }
 
+// UnderRule
+//
+// 5
+// A
 type UnderRule struct {
 	Rule
 
@@ -252,6 +314,7 @@ type UnderRule struct {
 }
 
 var _ Ruler = (*UnderRule)(nil)
+var _ HintApplier = (*UnderRule)(nil)
 
 func (*UnderRule) GetShowOpts() ShowOptions { return SHOW_VERT }
 
@@ -296,6 +359,17 @@ func (r *UnderRule) Apply(pos *Possibilities) bool {
 	return changed
 }
 
+func (r *UnderRule) ApplyHint(pos *Possibilities, re RuleExcluder) bool {
+	out := r.Apply(pos)
+	if _, ok := pos.GetCol(r.row1, r.thing1); ok {
+		re.ExcludeRule(r)
+	}
+	if _, ok := pos.GetCol(r.row2, r.thing2); ok {
+		re.ExcludeRule(r)
+	}
+	return out
+}
+
 func (r *UnderRule) GetAsText() string {
 	return GetThingName(r.row1, r.thing1) + " is the same column as " + GetThingName(r.row2, r.thing2)
 }
@@ -323,6 +397,7 @@ type BetweenRule struct {
 }
 
 var _ Ruler = (*BetweenRule)(nil)
+var _ HintApplier = (*BetweenRule)(nil)
 
 func (r *BetweenRule) GetShowOpts() ShowOptions { return SHOW_HORIZ }
 
@@ -453,7 +528,7 @@ func (r *BetweenRule) Save(stream io.Writer) {
 	WriteInt(stream, r.centerThing)
 }
 
-func (r *BetweenRule) OpenInitials(pos *Possibilities) bool {
+func (r *BetweenRule) ApplyHint(pos *Possibilities, re RuleExcluder) bool {
 	var out bool
 	if pos.IsPossible(0, r.centerRow, r.centerThing) {
 		pos.Exclude(0, r.centerRow, r.centerThing)
@@ -462,6 +537,76 @@ func (r *BetweenRule) OpenInitials(pos *Possibilities) bool {
 	if pos.IsPossible(PUZZLE_SIZE-1, r.centerRow, r.centerThing) {
 		pos.Exclude(PUZZLE_SIZE-1, r.centerRow, r.centerThing)
 		out = true
+	}
+	if ci, ok := pos.GetCol(r.row1, r.thing1); ok {
+		for i := 0; i < PUZZLE_SIZE; i++ {
+			if i != ci-1 && i != ci+1 {
+				if pos.IsPossible(i, r.centerRow, r.centerThing) {
+					pos.Exclude(i, r.centerRow, r.centerThing)
+					out = true
+				}
+			}
+			if i != ci-2 && i != ci+2 {
+				if pos.IsPossible(i, r.row2, r.thing2) {
+					pos.Exclude(i, r.row2, r.thing2)
+					out = true
+				}
+			}
+		}
+		if ci != 2 && ci != 3 {
+			re.ExcludeRule(r)
+			return out
+		}
+	}
+	if ci, ok := pos.GetCol(r.centerRow, r.centerThing); ok {
+		for i := 0; i < PUZZLE_SIZE; i++ {
+			if i != ci-1 && i != ci+1 {
+				if pos.IsPossible(i, r.row1, r.thing1) {
+					pos.Exclude(i, r.row1, r.thing1)
+					out = true
+				}
+				if pos.IsPossible(i, r.row2, r.thing2) {
+					pos.Exclude(i, r.row2, r.thing2)
+					out = true
+				}
+			}
+		}
+		if r.row1 == r.row2 {
+			for i := 1; i <= PUZZLE_SIZE; i++ {
+				if i != r.thing1 && i != r.thing2 {
+					if pos.IsPossible(ci-1, r.row1, i) {
+						pos.Exclude(ci-1, r.row1, i)
+						out = true
+					}
+					if pos.IsPossible(ci+1, r.row1, i) {
+						pos.Exclude(ci+1, r.row1, i)
+						out = true
+					}
+				}
+			}
+			re.ExcludeRule(r)
+			return out
+		}
+	}
+	if ci, ok := pos.GetCol(r.row2, r.thing2); ok {
+		for i := 0; i < PUZZLE_SIZE; i++ {
+			if i != ci-1 && i != ci+1 {
+				if pos.IsPossible(i, r.centerRow, r.centerThing) {
+					pos.Exclude(i, r.centerRow, r.centerThing)
+					out = true
+				}
+			}
+			if i != ci-2 && i != ci+2 {
+				if pos.IsPossible(i, r.row1, r.thing1) {
+					pos.Exclude(i, r.row1, r.thing1)
+					out = true
+				}
+			}
+		}
+		if ci != 2 && ci != 3 {
+			re.ExcludeRule(r)
+			return out
+		}
 	}
 	return out
 }

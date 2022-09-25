@@ -5,13 +5,13 @@ import (
 )
 
 var options = struct {
-	Fullscreen   *BoolConfig
-	NiceCursor   *BoolConfig
-	OpenInitials *BoolConfig
+	Fullscreen *BoolConfig
+	NiceCursor *BoolConfig
+	AutoHints  *BoolConfig
 }{
-	Fullscreen:   NewBoolConfigCmd("fullscreen", false, screen.SetFullscreen),
-	NiceCursor:   NewBoolConfigCmd("niceCursor", true, screen.SetCursor),
-	OpenInitials: NewBoolConfig("openInitials", false),
+	Fullscreen: NewBoolConfigCmd("fullscreen", false, screen.SetFullscreen),
+	NiceCursor: NewBoolConfigCmd("niceCursor", true, screen.SetCursor),
+	AutoHints:  NewBoolConfig("autoHints", false),
 }
 
 type OptionsChangedCommand struct {
@@ -65,7 +65,7 @@ func ShowOptionsWindow(parentArea *Area) {
 	for _, ch := range []*BoolConfig{
 		options.Fullscreen,
 		options.NiceCursor,
-		options.OpenInitials,
+		options.AutoHints,
 	} {
 		OPTION(x, ch.name, &ch.value)
 		checkboxCommands = append(checkboxCommands, ch)
