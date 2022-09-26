@@ -779,8 +779,8 @@ func (i *InputField) OnKeyDown(key SDLKey, translatedChar sdl.Scancode) bool {
 	default:
 	}
 
-	if key >= sdl.K_a && key <= sdl.K_z {
-		i.OnCharTyped(translatedChar)
+	if key >= sdl.K_SPACE && key <= sdl.K_z {
+		i.OnCharTyped(key)
 	}
 	return false
 }
@@ -789,9 +789,9 @@ func (i *InputField) OnKeyUp(key sdl.Keycode) bool {
 	return false
 }
 
-func (i *InputField) OnCharTyped(ch sdl.Scancode) {
+func (i *InputField) OnCharTyped(key sdl.Keycode) {
 	if len(*i.text) < i.maxLength {
-		*i.text = (*i.text)[:i.cursorPos] + sdl.GetScancodeName(ch) + (*i.text)[i.cursorPos:]
+		*i.text = (*i.text)[:i.cursorPos] + string(rune(key)) + (*i.text)[i.cursorPos:]
 		i.MoveCursor(i.cursorPos + 1)
 	} else {
 		i.MoveCursor(i.cursorPos)
