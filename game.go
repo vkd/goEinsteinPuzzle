@@ -2,6 +2,8 @@ package goeinstein
 
 import (
 	"io"
+	"math/rand"
+	"time"
 
 	"github.com/veandco/go-sdl2/sdl"
 )
@@ -447,10 +449,15 @@ func (g *Game) IsHinted() bool                   { return g.hinted }
 func (g *Game) SetHinted()                       { g.hinted = true }
 
 func NewGame() *Game {
+	rand := rand.New(rand.NewSource(time.Now().Unix()))
+	return NewGameRand(rand)
+}
+
+func NewGameRand(rand *rand.Rand) *Game {
 	g := &Game{
 		iconSet: NewIconSet(),
 	}
-	g.GenPuzzle()
+	g.GenPuzzle(rand)
 
 	g.verHints = NewVertHints(g.iconSet, &g.rules)
 	g.horHints = NewHorHints(g.iconSet, &g.rules)
@@ -519,7 +526,7 @@ func (g *Game) PleaseWait() {
 	screen.Flush()
 }
 
-func (g *Game) GenPuzzle() {
+func (g *Game) GenPuzzle(rand *rand.Rand) {
 	g.PleaseWait()
 
 	var horRules, verRules int
@@ -527,7 +534,7 @@ func (g *Game) GenPuzzle() {
 		if len(g.rules) > 0 {
 			g.DeleteRules()
 		}
-		GenPuzzle(&g.solvedPuzzle, &g.rules)
+		GenPuzzle(&g.solvedPuzzle, &g.rules, rand)
 		GetHintsQty(&g.rules, &verRules, &horRules)
 		if horRules <= 24 && verRules <= 15 {
 			break
@@ -550,7 +557,12 @@ func (g *Game) ResetVisuals() {
 }
 
 func (g *Game) NewGame() {
-	g.GenPuzzle()
+	rand := rand.New(rand.NewSource(time.Now().Unix()))
+	g.NewGameRand(rand)
+}
+
+func (g *Game) NewGameRand(rand *rand.Rand) {
+	g.GenPuzzle(rand)
 	g.ResetVisuals()
 }
 

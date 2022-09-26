@@ -5,7 +5,6 @@ import (
 	"io"
 	"math/rand"
 	"os"
-	"time"
 )
 
 //nolint:golint,nosnakecase,stylecheck
@@ -200,7 +199,7 @@ func (p *Possibilities) GetCol(row int, element Card) (int, bool) {
 	return 0, false
 }
 
-func Shuffle(arr *[PUZZLE_SIZE]Card) {
+func Shuffle(arr *[PUZZLE_SIZE]Card, rand *rand.Rand) {
 	var a, b int
 	var c Card
 
@@ -257,11 +256,11 @@ func RemoveRules(puzzle *SolvedPuzzle, rules *Rules) {
 	}
 }
 
-func GenRules(puzzle *SolvedPuzzle, rules *Rules) {
+func GenRules(puzzle *SolvedPuzzle, rules *Rules, rand *rand.Rand) {
 	var rulesDone bool
 
 	for {
-		rule := GenRule(puzzle)
+		rule := GenRule(puzzle, rand)
 		if rule != nil {
 			s := rule.GetAsText()
 			for _, r := range *rules {
@@ -281,17 +280,15 @@ func GenRules(puzzle *SolvedPuzzle, rules *Rules) {
 	}
 }
 
-func GenPuzzle(puzzle *SolvedPuzzle, rules *Rules) {
-	rand.Seed(time.Now().Unix())
-
+func GenPuzzle(puzzle *SolvedPuzzle, rules *Rules, rand *rand.Rand) {
 	for i := 0; i < PUZZLE_SIZE; i++ {
 		for j := 0; j < PUZZLE_SIZE; j++ {
 			puzzle[i][j] = Card(j + 1)
 		}
-		Shuffle(&(*puzzle)[i])
+		Shuffle(&(*puzzle)[i], rand)
 	}
 
-	GenRules(puzzle, rules)
+	GenRules(puzzle, rules, rand)
 	RemoveRules(puzzle, rules)
 }
 

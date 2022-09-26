@@ -44,7 +44,7 @@ var _ HintApplier = (*NearRule)(nil)
 
 func (r *NearRule) GetShowOpts() ShowOptions { return SHOW_HORIZ }
 
-func NewNearRule(puzzle SolvedPuzzle) *NearRule {
+func NewNearRule(puzzle SolvedPuzzle, rand *rand.Rand) *NearRule {
 	r := &NearRule{}
 	col1 := rand.Intn(PUZZLE_SIZE)
 	r.row1 = rand.Intn(PUZZLE_SIZE)
@@ -184,7 +184,7 @@ var _ HintApplier = (*DirectionRule)(nil)
 
 func (r *DirectionRule) GetShowOpts() ShowOptions { return SHOW_HORIZ }
 
-func NewDirectionRule(puzzle SolvedPuzzle) *DirectionRule {
+func NewDirectionRule(puzzle SolvedPuzzle, rand *rand.Rand) *DirectionRule {
 	r := &DirectionRule{}
 	r.row1 = rand.Intn(PUZZLE_SIZE)
 	r.row2 = rand.Intn(PUZZLE_SIZE)
@@ -273,7 +273,7 @@ func (r *OpenRule) ApplyOnStart() bool                                  { return
 func (r *OpenRule) Draw(x, y int32, iconSet *IconSet, highlighted bool) {}
 func (r *OpenRule) GetShowOpts() ShowOptions                            { return SHOW_NOTHING }
 
-func NewOpenRule(puzzle SolvedPuzzle) *OpenRule {
+func NewOpenRule(puzzle SolvedPuzzle, rand *rand.Rand) *OpenRule {
 	r := &OpenRule{}
 	r.col = rand.Intn(PUZZLE_SIZE)
 	r.row = rand.Intn(PUZZLE_SIZE)
@@ -324,7 +324,7 @@ var _ HintApplier = (*UnderRule)(nil)
 
 func (*UnderRule) GetShowOpts() ShowOptions { return SHOW_VERT }
 
-func NewUnderRule(puzzle SolvedPuzzle) *UnderRule {
+func NewUnderRule(puzzle SolvedPuzzle, rand *rand.Rand) *UnderRule {
 	r := &UnderRule{}
 	col := rand.Intn(PUZZLE_SIZE)
 	r.row1 = rand.Intn(PUZZLE_SIZE)
@@ -410,7 +410,7 @@ var _ HintApplier = (*BetweenRule)(nil)
 
 func (r *BetweenRule) GetShowOpts() ShowOptions { return SHOW_HORIZ }
 
-func NewBetweenRule(puzzle SolvedPuzzle) *BetweenRule {
+func NewBetweenRule(puzzle SolvedPuzzle, rand *rand.Rand) *BetweenRule {
 	r := &BetweenRule{}
 	r.centerRow = rand.Intn(PUZZLE_SIZE)
 	r.row1 = rand.Intn(PUZZLE_SIZE)
@@ -592,21 +592,21 @@ func (r *BetweenRule) ApplyHint(pos *Possibilities, re RuleExcluder) bool {
 	return out
 }
 
-func GenRule(puzzle *SolvedPuzzle) Ruler {
+func GenRule(puzzle *SolvedPuzzle, rand *rand.Rand) Ruler {
 	a := rand.Intn(14)
 	switch a {
 	case 0, 1, 2, 3:
-		return NewNearRule(*puzzle)
+		return NewNearRule(*puzzle, rand)
 	case 4:
-		return NewOpenRule(*puzzle)
+		return NewOpenRule(*puzzle, rand)
 	case 5, 6:
-		return NewUnderRule(*puzzle)
+		return NewUnderRule(*puzzle, rand)
 	case 7, 8, 9, 10:
-		return NewDirectionRule(*puzzle)
+		return NewDirectionRule(*puzzle, rand)
 	case 11, 12, 13:
-		return NewBetweenRule(*puzzle)
+		return NewBetweenRule(*puzzle, rand)
 	default:
-		return GenRule(puzzle)
+		return GenRule(puzzle, rand)
 	}
 }
 
