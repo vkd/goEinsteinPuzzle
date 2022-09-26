@@ -55,7 +55,7 @@ func (s *IconSet) Close() {
 	s.betweenArrow[1].Free()
 }
 
-func (s *IconSet) GetLargeIcon(row int, num int, h bool) *sdl.Surface {
+func (s *IconSet) GetLargeIcon(row int, num Card, h bool) *sdl.Surface {
 	var br int
 	if h {
 		br = 1
@@ -63,7 +63,7 @@ func (s *IconSet) GetLargeIcon(row int, num int, h bool) *sdl.Surface {
 	return s.largeIcons[row][num-1][br]
 }
 
-func (s *IconSet) GetSmallIcon(row int, num int, h bool) *sdl.Surface {
+func (s *IconSet) GetSmallIcon(row int, num Card, h bool) *sdl.Surface {
 	var br int
 	if h {
 		br = 1

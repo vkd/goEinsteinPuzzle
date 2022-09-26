@@ -6,7 +6,7 @@ import (
 	"math/rand"
 )
 
-func GetThingName(row int, thing int) string {
+func GetThingName(row int, thing Card) string {
 	sym := func(s string) string {
 		return string([]rune(s)[thing-1])
 	}
@@ -33,8 +33,10 @@ func GetThingName(row int, thing int) string {
 type NearRule struct {
 	Rule
 
-	thing1 [2]int
-	thing2 [2]int
+	row1   int
+	thing1 Card
+	row2   int
+	thing2 Card
 }
 
 var _ Ruler = (*NearRule)(nil)
@@ -45,8 +47,8 @@ func (r *NearRule) GetShowOpts() ShowOptions { return SHOW_HORIZ }
 func NewNearRule(puzzle SolvedPuzzle) *NearRule {
 	r := &NearRule{}
 	col1 := rand.Intn(PUZZLE_SIZE)
-	r.thing1[0] = rand.Intn(PUZZLE_SIZE)
-	r.thing1[1] = puzzle[r.thing1[0]][col1]
+	r.row1 = rand.Intn(PUZZLE_SIZE)
+	r.thing1 = puzzle[r.row1][col1]
 
 	var col2 int
 	if col1 == 0 {
@@ -63,21 +65,21 @@ func NewNearRule(puzzle SolvedPuzzle) *NearRule {
 		}
 	}
 
-	r.thing2[0] = rand.Intn(PUZZLE_SIZE)
-	r.thing2[1] = puzzle[r.thing2[0]][col2]
+	r.row2 = rand.Intn(PUZZLE_SIZE)
+	r.thing2 = puzzle[r.row2][col2]
 	return r
 }
 
 func NewNearRuleStream(stream io.Reader) *NearRule {
 	r := &NearRule{}
-	r.thing1[0] = ReadInt(stream)
-	r.thing1[1] = ReadInt(stream)
-	r.thing2[0] = ReadInt(stream)
-	r.thing2[1] = ReadInt(stream)
+	r.row1 = ReadInt(stream)
+	r.thing1.ReadFrom(stream)
+	r.row2 = ReadInt(stream)
+	r.thing2.ReadFrom(stream)
 	return r
 }
 
-func (r *NearRule) ApplyToCol(pos *Possibilities, col int, nearRow int, nearNum int, thisRow int, thisNum int) bool {
+func (r *NearRule) ApplyToCol(pos *Possibilities, col int, nearRow int, nearNum Card, thisRow int, thisNum Card) bool {
 	var hasLeft, hasRight bool
 
 	if col == 0 {
@@ -102,10 +104,10 @@ func (r *NearRule) Apply(pos *Possibilities) bool {
 	var changed bool
 
 	for i := 0; i < PUZZLE_SIZE; i++ {
-		if r.ApplyToCol(pos, i, r.thing1[0], r.thing1[1], r.thing2[0], r.thing2[1]) {
+		if r.ApplyToCol(pos, i, r.row1, r.thing1, r.row2, r.thing2) {
 			changed = true
 		}
-		if r.ApplyToCol(pos, i, r.thing2[0], r.thing2[1], r.thing1[0], r.thing1[1]) {
+		if r.ApplyToCol(pos, i, r.row2, r.thing2, r.row1, r.thing1) {
 			changed = true
 		}
 	}
@@ -119,11 +121,11 @@ func (r *NearRule) Apply(pos *Possibilities) bool {
 
 func (r *NearRule) ApplyHint(pos *Possibilities, re RuleExcluder) bool {
 	var out bool
-	if ci, ok := pos.GetCol(r.thing1[0], r.thing1[1]); ok {
+	if ci, ok := pos.GetCol(r.row1, r.thing1); ok {
 		for i := 0; i < PUZZLE_SIZE; i++ {
 			if i != ci-1 && i != ci+1 {
-				if pos.IsPossible(i, r.thing2[0], r.thing2[1]) {
-					pos.Exclude(i, r.thing2[0], r.thing2[1])
+				if pos.IsPossible(i, r.row2, r.thing2) {
+					pos.Exclude(i, r.row2, r.thing2)
 					out = true
 				}
 			}
@@ -131,11 +133,11 @@ func (r *NearRule) ApplyHint(pos *Possibilities, re RuleExcluder) bool {
 		re.ExcludeRule(r)
 		return out
 	}
-	if ci, ok := pos.GetCol(r.thing2[0], r.thing2[1]); ok {
+	if ci, ok := pos.GetCol(r.row2, r.thing2); ok {
 		for i := 0; i < PUZZLE_SIZE; i++ {
 			if i != ci-1 && i != ci+1 {
-				if pos.IsPossible(i, r.thing1[0], r.thing1[1]) {
-					pos.Exclude(i, r.thing1[0], r.thing1[1])
+				if pos.IsPossible(i, r.row1, r.thing1) {
+					pos.Exclude(i, r.row1, r.thing1)
 					out = true
 				}
 			}
@@ -147,22 +149,22 @@ func (r *NearRule) ApplyHint(pos *Possibilities, re RuleExcluder) bool {
 }
 
 func (r *NearRule) GetAsText() string {
-	return GetThingName(r.thing1[0], r.thing1[1]) + " is near to " + GetThingName(r.thing2[0], r.thing2[1])
+	return GetThingName(r.row1, r.thing1) + " is near to " + GetThingName(r.row2, r.thing2)
 }
 
 func (r *NearRule) Draw(x, y int32, iconSet *IconSet, h bool) {
-	icon := iconSet.GetLargeIcon(r.thing1[0], r.thing1[1], h)
+	icon := iconSet.GetLargeIcon(r.row1, r.thing1, h)
 	screen.Draw(x, y, icon)
 	screen.Draw(x+icon.H, y, iconSet.GetNearHintIcon(h))
-	screen.Draw(x+icon.H*2, y, iconSet.GetLargeIcon(r.thing2[0], r.thing2[1], h))
+	screen.Draw(x+icon.H*2, y, iconSet.GetLargeIcon(r.row2, r.thing2, h))
 }
 
 func (r *NearRule) Save(stream io.Writer) {
 	WriteString(stream, "near")
-	WriteInt(stream, r.thing1[0])
-	WriteInt(stream, r.thing1[1])
-	WriteInt(stream, r.thing2[0])
-	WriteInt(stream, r.thing2[1])
+	WriteInt(stream, r.row1)
+	r.thing1.WriteTo(stream)
+	WriteInt(stream, r.row2)
+	r.thing2.WriteTo(stream)
 }
 
 // DirectionRule
@@ -171,8 +173,10 @@ func (r *NearRule) Save(stream io.Writer) {
 type DirectionRule struct {
 	Rule
 
-	row1, thing1 int
-	row2, thing2 int
+	row1   int
+	thing1 Card
+	row2   int
+	thing2 Card
 }
 
 var _ Ruler = (*DirectionRule)(nil)
@@ -194,9 +198,9 @@ func NewDirectionRule(puzzle SolvedPuzzle) *DirectionRule {
 func NewDirectionRuleStream(stream io.Reader) *DirectionRule {
 	r := &DirectionRule{}
 	r.row1 = ReadInt(stream)
-	r.thing1 = ReadInt(stream)
+	r.thing1.ReadFrom(stream)
 	r.row2 = ReadInt(stream)
-	r.thing2 = ReadInt(stream)
+	r.thing2.ReadFrom(stream)
 	return r
 }
 
@@ -240,9 +244,9 @@ func (r *DirectionRule) Draw(x, y int32, iconSet *IconSet, h bool) {
 func (r *DirectionRule) Save(stream io.Writer) {
 	WriteString(stream, "direction")
 	WriteInt(stream, r.row1)
-	WriteInt(stream, r.thing1)
+	r.thing1.WriteTo(stream)
 	WriteInt(stream, r.row2)
-	WriteInt(stream, r.thing2)
+	r.thing2.WriteTo(stream)
 }
 
 func (r *DirectionRule) ApplyHint(pos *Possibilities, re RuleExcluder) bool {
@@ -259,7 +263,8 @@ func (r *DirectionRule) ApplyHint(pos *Possibilities, re RuleExcluder) bool {
 type OpenRule struct {
 	Rule
 
-	col, row, thing int
+	col, row int
+	thing    Card
 }
 
 var _ Ruler = (*OpenRule)(nil)
@@ -280,7 +285,7 @@ func NewOpenRuleStream(stream io.Reader) *OpenRule {
 	r := &OpenRule{}
 	r.col = ReadInt(stream)
 	r.row = ReadInt(stream)
-	r.thing = ReadInt(stream)
+	r.thing.ReadFrom(stream)
 	return r
 }
 
@@ -300,7 +305,7 @@ func (r *OpenRule) Save(stream io.Writer) {
 	WriteString(stream, "open")
 	WriteInt(stream, r.col)
 	WriteInt(stream, r.row)
-	WriteInt(stream, r.thing)
+	r.thing.WriteTo(stream)
 }
 
 // UnderRule
@@ -310,7 +315,8 @@ func (r *OpenRule) Save(stream io.Writer) {
 type UnderRule struct {
 	Rule
 
-	row1, thing1, row2, thing2 int
+	row1, row2     int
+	thing1, thing2 Card
 }
 
 var _ Ruler = (*UnderRule)(nil)
@@ -336,9 +342,9 @@ func NewUnderRule(puzzle SolvedPuzzle) *UnderRule {
 func NewUnderRuleStream(stream io.Reader) *UnderRule {
 	r := &UnderRule{}
 	r.row1 = ReadInt(stream)
-	r.thing1 = ReadInt(stream)
+	r.thing1.ReadFrom(stream)
 	r.row2 = ReadInt(stream)
-	r.thing2 = ReadInt(stream)
+	r.thing2.ReadFrom(stream)
 	return r
 }
 
@@ -383,17 +389,20 @@ func (r *UnderRule) Draw(x, y int32, iconSet *IconSet, h bool) {
 func (r *UnderRule) Save(stream io.Writer) {
 	WriteString(stream, "under")
 	WriteInt(stream, r.row1)
-	WriteInt(stream, r.thing1)
+	r.thing1.WriteTo(stream)
 	WriteInt(stream, r.row2)
-	WriteInt(stream, r.thing2)
+	r.thing2.WriteTo(stream)
 }
 
 type BetweenRule struct {
 	Rule
 
-	row1, thing1           int
-	row2, thing2           int
-	centerRow, centerThing int
+	row1        int
+	thing1      Card
+	row2        int
+	thing2      Card
+	centerRow   int
+	centerThing Card
 }
 
 var _ Ruler = (*BetweenRule)(nil)
@@ -422,11 +431,11 @@ func NewBetweenRule(puzzle SolvedPuzzle) *BetweenRule {
 func NewBetweenRuleStream(stream io.Reader) *BetweenRule {
 	r := &BetweenRule{}
 	r.row1 = ReadInt(stream)
-	r.thing1 = ReadInt(stream)
+	r.thing1.ReadFrom(stream)
 	r.row2 = ReadInt(stream)
-	r.thing2 = ReadInt(stream)
+	r.thing2.ReadFrom(stream)
 	r.centerRow = ReadInt(stream)
-	r.centerThing = ReadInt(stream)
+	r.centerThing.ReadFrom(stream)
 	return r
 }
 
@@ -521,36 +530,26 @@ func (r *BetweenRule) Draw(x, y int32, iconSet *IconSet, h bool) {
 func (r *BetweenRule) Save(stream io.Writer) {
 	WriteString(stream, "between")
 	WriteInt(stream, r.row1)
-	WriteInt(stream, r.thing1)
+	r.thing1.WriteTo(stream)
 	WriteInt(stream, r.row2)
-	WriteInt(stream, r.thing2)
+	r.thing2.WriteTo(stream)
 	WriteInt(stream, r.centerRow)
-	WriteInt(stream, r.centerThing)
+	r.centerThing.WriteTo(stream)
 }
 
+//nolint:gocyclo
 func (r *BetweenRule) ApplyHint(pos *Possibilities, re RuleExcluder) bool {
 	var out bool
-	if pos.IsPossible(0, r.centerRow, r.centerThing) {
-		pos.Exclude(0, r.centerRow, r.centerThing)
-		out = true
-	}
-	if pos.IsPossible(PUZZLE_SIZE-1, r.centerRow, r.centerThing) {
-		pos.Exclude(PUZZLE_SIZE-1, r.centerRow, r.centerThing)
-		out = true
-	}
+	out = out || pos.Exclude(0, r.centerRow, r.centerThing)
+	out = out || pos.Exclude(PUZZLE_SIZE-1, r.centerRow, r.centerThing)
+
 	if ci, ok := pos.GetCol(r.row1, r.thing1); ok {
 		for i := 0; i < PUZZLE_SIZE; i++ {
 			if i != ci-1 && i != ci+1 {
-				if pos.IsPossible(i, r.centerRow, r.centerThing) {
-					pos.Exclude(i, r.centerRow, r.centerThing)
-					out = true
-				}
+				out = out || pos.Exclude(i, r.centerRow, r.centerThing)
 			}
 			if i != ci-2 && i != ci+2 {
-				if pos.IsPossible(i, r.row2, r.thing2) {
-					pos.Exclude(i, r.row2, r.thing2)
-					out = true
-				}
+				out = out || pos.Exclude(i, r.row2, r.thing2)
 			}
 		}
 		if ci != 2 && ci != 3 {
@@ -561,27 +560,15 @@ func (r *BetweenRule) ApplyHint(pos *Possibilities, re RuleExcluder) bool {
 	if ci, ok := pos.GetCol(r.centerRow, r.centerThing); ok {
 		for i := 0; i < PUZZLE_SIZE; i++ {
 			if i != ci-1 && i != ci+1 {
-				if pos.IsPossible(i, r.row1, r.thing1) {
-					pos.Exclude(i, r.row1, r.thing1)
-					out = true
-				}
-				if pos.IsPossible(i, r.row2, r.thing2) {
-					pos.Exclude(i, r.row2, r.thing2)
-					out = true
-				}
+				out = out || pos.Exclude(i, r.row1, r.thing1)
+				out = out || pos.Exclude(i, r.row2, r.thing2)
 			}
 		}
 		if r.row1 == r.row2 {
-			for i := 1; i <= PUZZLE_SIZE; i++ {
+			for i := Card(1); i <= PUZZLE_SIZE; i++ {
 				if i != r.thing1 && i != r.thing2 {
-					if pos.IsPossible(ci-1, r.row1, i) {
-						pos.Exclude(ci-1, r.row1, i)
-						out = true
-					}
-					if pos.IsPossible(ci+1, r.row1, i) {
-						pos.Exclude(ci+1, r.row1, i)
-						out = true
-					}
+					out = out || pos.Exclude(ci-1, r.row1, i)
+					out = out || pos.Exclude(ci+1, r.row1, i)
 				}
 			}
 			re.ExcludeRule(r)
@@ -591,16 +578,10 @@ func (r *BetweenRule) ApplyHint(pos *Possibilities, re RuleExcluder) bool {
 	if ci, ok := pos.GetCol(r.row2, r.thing2); ok {
 		for i := 0; i < PUZZLE_SIZE; i++ {
 			if i != ci-1 && i != ci+1 {
-				if pos.IsPossible(i, r.centerRow, r.centerThing) {
-					pos.Exclude(i, r.centerRow, r.centerThing)
-					out = true
-				}
+				out = out || pos.Exclude(i, r.centerRow, r.centerThing)
 			}
 			if i != ci-2 && i != ci+2 {
-				if pos.IsPossible(i, r.row1, r.thing1) {
-					pos.Exclude(i, r.row1, r.thing1)
-					out = true
-				}
+				out = out || pos.Exclude(i, r.row1, r.thing1)
 			}
 		}
 		if ci != 2 && ci != 3 {

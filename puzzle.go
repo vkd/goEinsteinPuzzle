@@ -1,6 +1,10 @@
 package goeinstein
 
-import "github.com/veandco/go-sdl2/sdl"
+import (
+	"io"
+
+	"github.com/veandco/go-sdl2/sdl"
+)
 
 //nolint:golint,nosnakecase,stylecheck
 const (
@@ -12,6 +16,16 @@ const (
 	FIELD_TILE_HEIGHT = 48
 )
 
+type Card uint8
+
+func (c *Card) ReadFrom(r io.Reader) {
+	*c = Card(ReadInt(r))
+}
+
+func (c *Card) WriteTo(w io.Writer) {
+	WriteInt(w, int(*c))
+}
+
 type Puzzle struct {
 	Widget
 
@@ -21,7 +35,7 @@ type Puzzle struct {
 	win                     bool
 	solved                  *SolvedPuzzle
 	hCol, hRow              int
-	subHNo                  int
+	subHNo                  Card
 	winCommand, failCommand Command
 
 	hinter Hinter
@@ -73,15 +87,15 @@ func (p *Puzzle) DrawCellUpdate(col, row int, addToUpdate bool) {
 	posY := int32(FIELD_OFFSET_Y + row*(FIELD_TILE_HEIGHT+FIELD_GAP_Y))
 
 	if p.possib.IsDefined(col, row) {
-		element := p.possib.GetDefined(col, row)
-		if element > 0 {
+		element, ok := p.possib.GetDefined(col, row)
+		if ok && element > 0 {
 			screen.Draw(posX, posY, p.iconSet.GetLargeIcon(row, element, (p.hCol == col) && (p.hRow == row)))
 		}
 	} else {
 		screen.Draw(posX, posY, p.iconSet.GetEmptyFieldIcon())
 		x := posX
 		y := posY + (FIELD_TILE_HEIGHT / 6)
-		for i := 0; i < 6; i++ {
+		for i := Card(0); i < 6; i++ {
 			if p.possib.IsPossible(col, row, i+1) {
 				screen.Draw(x, y, p.iconSet.GetSmallIcon(row, i+1, (p.hCol == col) && (p.hRow == row) && (i+1 == p.subHNo)))
 			}
@@ -109,7 +123,8 @@ func (p *Puzzle) DrawRowUpdate(row int, addToUpdate bool) {
 }
 
 func (p *Puzzle) OnMouseButtonDown(button uint8, x, y int32) bool {
-	var col, row, element int
+	var col, row int
+	var element Card
 
 	if !p.GetCellNo(x, y, &col, &row, &element) {
 		return false
@@ -123,7 +138,7 @@ func (p *Puzzle) OnMouseButtonDown(button uint8, x, y int32) bool {
 		// 		}
 		// 	}
 		// } else {
-		if element == -1 {
+		if element == 0 {
 			return false
 		}
 		if button == 1 {
@@ -172,10 +187,10 @@ func (p *Puzzle) OnVictory() {
 	}
 }
 
-func (p *Puzzle) GetCellNo(x, y int32, col, row *int, subNo *int) bool {
+func (p *Puzzle) GetCellNo(x, y int32, col, row *int, subNo *Card) bool {
 	*col = -1
 	*row = -1
-	*subNo = -1
+	*subNo = 0
 
 	if !IsInRect(x, y, FIELD_OFFSET_X, FIELD_OFFSET_Y, (FIELD_TILE_WIDTH+FIELD_GAP_X)*PUZZLE_SIZE, (FIELD_TILE_HEIGHT+FIELD_GAP_Y)*PUZZLE_SIZE) {
 		return false
@@ -205,7 +220,7 @@ func (p *Puzzle) GetCellNo(x, y int32, col, row *int, subNo *int) bool {
 		return false
 	}
 	cRow := int(y) / (FIELD_TILE_HEIGHT / 3)
-	*subNo = cRow*3 + cCol + 1
+	*subNo = Card(cRow*3 + cCol + 1)
 
 	return true
 }

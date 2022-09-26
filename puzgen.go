@@ -11,10 +11,10 @@ import (
 //nolint:golint,nosnakecase,stylecheck
 const PUZZLE_SIZE = 6
 
-type SolvedPuzzle [PUZZLE_SIZE][PUZZLE_SIZE]int
+type SolvedPuzzle [PUZZLE_SIZE][PUZZLE_SIZE]Card
 
 type Possibilities struct {
-	pos [PUZZLE_SIZE][PUZZLE_SIZE][PUZZLE_SIZE]int
+	pos [PUZZLE_SIZE][PUZZLE_SIZE]Cell
 }
 
 func NewPossibilities() *Possibilities {
@@ -27,9 +27,7 @@ func NewPossibilitiesStream(stream io.Reader) *Possibilities {
 	p := &Possibilities{}
 	for row := 0; row < PUZZLE_SIZE; row++ {
 		for col := 0; col < PUZZLE_SIZE; col++ {
-			for element := 0; element < PUZZLE_SIZE; element++ {
-				p.pos[col][row][element] = ReadInt(stream)
-			}
+			p.pos[col][row].ReadFrom(stream)
 		}
 	}
 	return p
@@ -38,9 +36,7 @@ func NewPossibilitiesStream(stream io.Reader) *Possibilities {
 func (p *Possibilities) Reset() {
 	for i := 0; i < PUZZLE_SIZE; i++ {
 		for j := 0; j < PUZZLE_SIZE; j++ {
-			for k := 0; k < PUZZLE_SIZE; k++ {
-				p.pos[i][j][k] = k + 1
-			}
+			p.pos[i][j].Reset()
 		}
 	}
 }
@@ -97,59 +93,39 @@ func (p *Possibilities) CheckSingles(row int) {
 	}
 }
 
-func (p *Possibilities) Exclude(col, row int, element int) {
+func (p *Possibilities) Exclude(col, row int, element Card) bool {
 	if p.pos[col][row][element-1] == 0 {
-		return
+		return false
 	}
 
 	p.pos[col][row][element-1] = 0
 	p.CheckSingles(row)
+	return true
 }
 
-func (p *Possibilities) Set(col, row int, element int) {
-	for i := 0; i < PUZZLE_SIZE; i++ {
-		if i != (element - 1) {
-			p.pos[col][row][i] = 0
-		} else {
-			p.pos[col][row][i] = element
-		}
-	}
+func (p *Possibilities) Set(col, row int, element Card) {
+	p.pos[col][row].Set(element)
 
 	for j := 0; j < PUZZLE_SIZE; j++ {
 		if j != col {
-			p.pos[j][row][element-1] = 0
+			p.pos[j][row].Exclude(element)
 		}
 	}
 
 	p.CheckSingles(row)
 }
 
-func (p *Possibilities) IsPossible(col, row int, element int) bool {
-	return p.pos[col][row][element-1] == element
+func (p *Possibilities) IsPossible(col, row int, element Card) bool {
+	return p.pos[col][row].IsPossible(element)
 }
 
 func (p *Possibilities) IsDefined(col, row int) bool {
-	var solvedCnt, unsolvedCnt int
-	for i := 0; i < PUZZLE_SIZE; i++ {
-		if p.pos[col][row][i] == 0 {
-			unsolvedCnt++
-		} else {
-			solvedCnt++
-		}
-	}
-	return (unsolvedCnt == PUZZLE_SIZE-1) && (solvedCnt == 1)
+	_, ok := p.pos[col][row].GetDefined()
+	return ok
 }
 
-func (p *Possibilities) GetDefined(col, row int) int {
-	if !p.IsDefined(col, row) {
-		return 0
-	}
-	for i := 0; i < PUZZLE_SIZE; i++ {
-		if p.pos[col][row][i] > 0 {
-			return i + 1
-		}
-	}
-	return 0
+func (p *Possibilities) GetDefined(col, row int) (Card, bool) {
+	return p.pos[col][row].GetDefined()
 }
 
 func (p *Possibilities) IsSolved() bool {
@@ -174,12 +150,12 @@ func (p *Possibilities) IsValid(puzzle *SolvedPuzzle) bool {
 	return true
 }
 
-func (p *Possibilities) GetPosition(row int, element int) int {
+func (p *Possibilities) GetPosition(row int, element Card) int {
 	var cnt int
 	lastPos := -1
 
 	for i := 0; i < PUZZLE_SIZE; i++ {
-		if p.pos[i][row][element-1] == element {
+		if p.pos[i][row].IsPossible(element) {
 			cnt++
 			lastPos = i
 		}
@@ -207,31 +183,26 @@ func (p *Possibilities) Print() {
 	}
 }
 
-func (p *Possibilities) MakePossible(col, row int, element int) {
-	p.pos[col][row][element-1] = element
-}
-
 func (p *Possibilities) Save(stream io.Writer) {
 	for row := 0; row < PUZZLE_SIZE; row++ {
 		for col := 0; col < PUZZLE_SIZE; col++ {
-			for element := 0; element < PUZZLE_SIZE; element++ {
-				WriteInt(stream, p.pos[col][row][element])
-			}
+			p.pos[col][row].WriteTo(stream)
 		}
 	}
 }
 
-func (p *Possibilities) GetCol(row int, element int) (int, bool) {
+func (p *Possibilities) GetCol(row int, element Card) (int, bool) {
 	for i := 0; i < PUZZLE_SIZE; i++ {
-		if p.GetDefined(i, row) == element {
+		if c, ok := p.GetDefined(i, row); ok && c == element {
 			return i, true
 		}
 	}
 	return 0, false
 }
 
-func Shuffle(arr *[PUZZLE_SIZE]int) {
-	var a, b, c int
+func Shuffle(arr *[PUZZLE_SIZE]Card) {
+	var a, b int
+	var c Card
 
 	for i := 0; i < 30; i++ {
 		a = rand.Intn(PUZZLE_SIZE)
@@ -315,7 +286,7 @@ func GenPuzzle(puzzle *SolvedPuzzle, rules *Rules) {
 
 	for i := 0; i < PUZZLE_SIZE; i++ {
 		for j := 0; j < PUZZLE_SIZE; j++ {
-			puzzle[i][j] = j + 1
+			puzzle[i][j] = Card(j + 1)
 		}
 		Shuffle(&(*puzzle)[i])
 	}
@@ -362,7 +333,7 @@ func GetHintsQty(rules *Rules, vert, horiz *int) {
 func SavePuzzle(puzzle *SolvedPuzzle, stream io.Writer) {
 	for row := 0; row < PUZZLE_SIZE; row++ {
 		for col := 0; col < PUZZLE_SIZE; col++ {
-			WriteInt(stream, (*puzzle)[row][col])
+			(*puzzle)[row][col].WriteTo(stream)
 		}
 	}
 }
@@ -370,7 +341,7 @@ func SavePuzzle(puzzle *SolvedPuzzle, stream io.Writer) {
 func LoadPuzzle(puzzle *SolvedPuzzle, stream io.Reader) {
 	for row := 0; row < PUZZLE_SIZE; row++ {
 		for col := 0; col < PUZZLE_SIZE; col++ {
-			puzzle[row][col] = ReadInt(stream)
+			puzzle[row][col].ReadFrom(stream)
 		}
 	}
 }
