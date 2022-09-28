@@ -87,16 +87,12 @@ func (h *HorHints) Reset(r *Rules) {
 func (h *HorHints) Draw() {
 	for i := 0; i < HORHINTS_HINTS_ROWS; i++ {
 		for j := 0; j < HORHINTS_HINTS_COLS; j++ {
-			h.DrawCellUpdate(j, i, true)
+			h.DrawCell(j, i)
 		}
 	}
 }
 
 func (h *HorHints) DrawCell(col, row int) {
-	h.DrawCellUpdate(col, row, true)
-}
-
-func (h *HorHints) DrawCellUpdate(col, row int, addToUpdate bool) {
 	x := int32(HORHINTS_TILE_X + col*(HORHINTS_TILE_WIDTH*3+HORHINTS_TILE_GAP_X))
 	y := int32(HORHINTS_TILE_Y + row*(HORHINTS_TILE_HEIGHT+HORHINTS_TILE_GAP_Y))
 
@@ -138,9 +134,7 @@ func (h *HorHints) DrawCellUpdate(col, row int, addToUpdate bool) {
 		}
 	}
 
-	if addToUpdate {
-		screen.AddRegionToUpdate(x, y, HORHINTS_TILE_WIDTH*3, HORHINTS_TILE_HEIGHT) //nolint:gomnd
-	}
+	screen.AddRegionToUpdate(x, y, HORHINTS_TILE_WIDTH*3, HORHINTS_TILE_HEIGHT) //nolint:gomnd
 }
 
 func (h *HorHints) OnMouseButtonDown(button uint8, x, y int32) bool {
