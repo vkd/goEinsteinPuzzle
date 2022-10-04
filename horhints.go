@@ -198,6 +198,15 @@ func (h *HorHints) OnMouseMove(x, y int32) bool {
 	no := h.GetRuleNo(x, y)
 
 	if no != h.highlighted {
+		if no >= 0 {
+			r := h.rules[no]
+			if r != nil {
+				r.OnMouseMove()
+			}
+		} else {
+			Selected.Clear()
+		}
+
 		old := h.highlighted
 		h.highlighted = no
 		if h.IsActive(old) {

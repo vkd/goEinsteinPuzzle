@@ -8,6 +8,9 @@ type IconSet struct {
 	emptyFieldIcon, emptyHintIcon *sdl.Surface
 	nearHintIcon                  [2]*sdl.Surface
 	sideHintIcon, betweenArrow    [2]*sdl.Surface
+
+	BorderLarge *sdl.Surface
+	BorderSmall *sdl.Surface
 }
 
 func NewIconSet() *IconSet {
@@ -33,6 +36,9 @@ func NewIconSet() *IconSet {
 	s.sideHintIcon[1] = AdjustBrightnessTransparent(s.sideHintIcon[0], 1.5, false)
 	s.betweenArrow[0] = LoadImageTransparent("betwarr.bmp", true)
 	s.betweenArrow[1] = AdjustBrightnessTransparent(s.betweenArrow[0], 1.5, false)
+
+	s.BorderLarge = LoadImageTransparent("border-large.bmp", true)
+	s.BorderSmall = LoadImageTransparent("border-small.bmp", true)
 	return s
 }
 
@@ -53,6 +59,9 @@ func (s *IconSet) Close() {
 	s.sideHintIcon[1].Free()
 	s.betweenArrow[0].Free()
 	s.betweenArrow[1].Free()
+
+	s.BorderLarge.Free()
+	s.BorderSmall.Free()
 }
 
 func (s *IconSet) GetLargeIcon(row int, num Card, h bool) *sdl.Surface {

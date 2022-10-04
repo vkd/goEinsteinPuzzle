@@ -8,10 +8,17 @@ var options = struct {
 	Fullscreen *BoolConfig
 	NiceCursor *BoolConfig
 	AutoHints  *BoolConfig
+
+	HighlightHints *BoolConfig
 }{
 	Fullscreen: NewBoolConfigCmd("fullscreen", false, screen.SetFullscreen),
 	NiceCursor: NewBoolConfigCmd("niceCursor", true, screen.SetCursor),
-	AutoHints:  NewBoolConfig("autoHints", false),
+	AutoHints: NewBoolConfigCmd("autoHints", false, func(b bool) {
+		if b {
+			game.SetHinted()
+		}
+	}),
+	HighlightHints: NewBoolConfig("highlightHints", false),
 }
 
 type OptionsChangedCommand struct {
@@ -66,6 +73,7 @@ func ShowOptionsWindow(parentArea *Area) {
 		options.Fullscreen,
 		options.NiceCursor,
 		options.AutoHints,
+		options.HighlightHints,
 	} {
 		OPTION(x, ch.name, &ch.value)
 		checkboxCommands = append(checkboxCommands, ch)
@@ -128,10 +136,6 @@ func (b *BoolConfig) Save() {
 	if b.onSaveFn != nil {
 		b.onSaveFn(b.value)
 	}
-}
-
-func (b *BoolConfig) SaveCommand() Command {
-	return FnCommand(b.Save)
 }
 
 func (b *BoolConfig) DoAction() {

@@ -371,6 +371,7 @@ type Ruler interface {
 	GetShowOpts() ShowOptions
 	Draw(x, y int32, iconSet *IconSet, h bool)
 	Save(io.Writer)
+	OnMouseMove()
 }
 
 type Rule struct{}

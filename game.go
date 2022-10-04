@@ -426,6 +426,8 @@ func (r *ruleHinter) AutoHint(pos *Possibilities) {
 	r.rules.ApplyHints(pos, r.ruleExcluder)
 }
 
+var game *Game
+
 type Game struct {
 	solvedPuzzle      SolvedPuzzle
 	rules             Rules
@@ -544,7 +546,7 @@ func (g *Game) GenPuzzle(rand *rand.Rand) {
 	g.savedSolvedPuzzle = g.solvedPuzzle
 	g.savedRules = g.rules[:]
 
-	g.hinted = false
+	g.hinted = options.AutoHints.value
 }
 
 func (g *Game) ResetVisuals() {

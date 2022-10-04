@@ -185,6 +185,14 @@ func (v *VertHints) OnMouseMove(x, y int32) bool {
 	no := v.GetRuleNo(x, y)
 
 	if no != v.highlighted {
+		if no >= 0 && no < len(v.rules) {
+			r := v.rules[no]
+			if r != nil {
+				r.OnMouseMove()
+			}
+		} else {
+			Selected.Clear()
+		}
 		old := v.highlighted
 		v.highlighted = no
 		if v.IsActive(old) {

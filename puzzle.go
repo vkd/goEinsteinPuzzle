@@ -16,6 +16,38 @@ const (
 	FIELD_TILE_HEIGHT = 48
 )
 
+type Selects [3]SelectedCard
+
+func (s Selects) Equal(row int, card Card) bool {
+	if !options.HighlightHints.value {
+		return false
+	}
+	for _, sel := range s {
+		if sel.card == 0 {
+			break
+		}
+		if sel.Equal(row, card) {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Selects) Clear() {
+	*s = Selects{}
+}
+
+var Selected Selects
+
+type SelectedCard struct {
+	row  int
+	card Card
+}
+
+func (s *SelectedCard) Equal(row int, card Card) bool {
+	return row == s.row && card == s.card
+}
+
 type Card uint8
 
 func (c *Card) ReadFrom(r io.Reader) {
@@ -90,6 +122,9 @@ func (p *Puzzle) DrawCellUpdate(col, row int, addToUpdate bool) {
 		element, ok := p.possib.GetDefined(col, row)
 		if ok && element > 0 {
 			screen.Draw(posX, posY, p.iconSet.GetLargeIcon(row, element, (p.hCol == col) && (p.hRow == row)))
+			if Selected.Equal(row, element) {
+				screen.Draw(posX, posY, p.iconSet.BorderLarge)
+			}
 		}
 	} else {
 		screen.Draw(posX, posY, p.iconSet.GetEmptyFieldIcon())
@@ -98,6 +133,9 @@ func (p *Puzzle) DrawCellUpdate(col, row int, addToUpdate bool) {
 		for i := Card(0); i < 6; i++ {
 			if p.possib.IsPossible(col, row, i+1) {
 				screen.Draw(x, y, p.iconSet.GetSmallIcon(row, i+1, (p.hCol == col) && (p.hRow == row) && (i+1 == p.subHNo)))
+				if Selected.Equal(row, i+1) {
+					screen.Draw(x, y, p.iconSet.BorderSmall)
+				}
 			}
 			if i == 2 {
 				x = posX
@@ -232,6 +270,9 @@ func (p *Puzzle) OnMouseMove(x, y int32) bool {
 
 	p.GetCellNo(x, y, &p.hCol, &p.hRow, &p.subHNo)
 	if (p.hCol != oldCol) || (p.hRow != oldRow) || (p.subHNo != oldElement) {
+		Selected.Clear()
+		Selected[0].row = p.hRow
+		Selected[0].card = p.subHNo
 		if (oldCol != -1) && (oldRow != -1) {
 			p.DrawCell(oldCol, oldRow)
 		}

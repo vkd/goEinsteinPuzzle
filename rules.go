@@ -155,8 +155,14 @@ func (r *NearRule) GetAsText() string {
 func (r *NearRule) Draw(x, y int32, iconSet *IconSet, h bool) {
 	icon := iconSet.GetLargeIcon(r.row1, r.thing1, h)
 	screen.Draw(x, y, icon)
+	if Selected.Equal(r.row1, r.thing1) {
+		screen.Draw(x, y, iconSet.BorderLarge)
+	}
 	screen.Draw(x+icon.H, y, iconSet.GetNearHintIcon(h))
 	screen.Draw(x+icon.H*2, y, iconSet.GetLargeIcon(r.row2, r.thing2, h))
+	if Selected.Equal(r.row2, r.thing2) {
+		screen.Draw(x+icon.H*2, y, iconSet.BorderLarge)
+	}
 }
 
 func (r *NearRule) Save(stream io.Writer) {
@@ -165,6 +171,14 @@ func (r *NearRule) Save(stream io.Writer) {
 	r.thing1.WriteTo(stream)
 	WriteInt(stream, r.row2)
 	r.thing2.WriteTo(stream)
+}
+
+func (r *NearRule) OnMouseMove() {
+	Selected.Clear()
+	Selected[0].row = r.row1
+	Selected[0].card = r.thing1
+	Selected[1].row = r.row2
+	Selected[1].card = r.thing2
 }
 
 // DirectionRule
@@ -237,8 +251,14 @@ func (r *DirectionRule) GetAsText() string {
 func (r *DirectionRule) Draw(x, y int32, iconSet *IconSet, h bool) {
 	icon := iconSet.GetLargeIcon(r.row1, r.thing1, h)
 	screen.Draw(x, y, icon)
+	if Selected.Equal(r.row1, r.thing1) {
+		screen.Draw(x, y, iconSet.BorderLarge)
+	}
 	screen.Draw(x+icon.H, y, iconSet.GetSideHintIcon(h))
 	screen.Draw(x+icon.H*2, y, iconSet.GetLargeIcon(r.row2, r.thing2, h))
+	if Selected.Equal(r.row2, r.thing2) {
+		screen.Draw(x+icon.H*2, y, iconSet.BorderLarge)
+	}
 }
 
 func (r *DirectionRule) Save(stream io.Writer) {
@@ -258,6 +278,14 @@ func (r *DirectionRule) ApplyHint(pos *Possibilities, re RuleExcluder) bool {
 		re.ExcludeRule(r)
 	}
 	return out
+}
+
+func (r *DirectionRule) OnMouseMove() {
+	Selected.Clear()
+	Selected[0].row = r.row1
+	Selected[0].card = r.thing1
+	Selected[1].row = r.row2
+	Selected[1].card = r.thing2
 }
 
 type OpenRule struct {
@@ -307,6 +335,8 @@ func (r *OpenRule) Save(stream io.Writer) {
 	WriteInt(stream, r.row)
 	r.thing.WriteTo(stream)
 }
+
+func (r *OpenRule) OnMouseMove() {}
 
 // UnderRule
 //
@@ -383,7 +413,13 @@ func (r *UnderRule) GetAsText() string {
 func (r *UnderRule) Draw(x, y int32, iconSet *IconSet, h bool) {
 	icon := iconSet.GetLargeIcon(r.row1, r.thing1, h)
 	screen.Draw(x, y, icon)
+	if Selected.Equal(r.row1, r.thing1) {
+		screen.Draw(x, y, iconSet.BorderLarge)
+	}
 	screen.Draw(x, y+icon.H, iconSet.GetLargeIcon(r.row2, r.thing2, h))
+	if Selected.Equal(r.row2, r.thing2) {
+		screen.Draw(x, y+icon.H, iconSet.BorderLarge)
+	}
 }
 
 func (r *UnderRule) Save(stream io.Writer) {
@@ -392,6 +428,14 @@ func (r *UnderRule) Save(stream io.Writer) {
 	r.thing1.WriteTo(stream)
 	WriteInt(stream, r.row2)
 	r.thing2.WriteTo(stream)
+}
+
+func (r *UnderRule) OnMouseMove() {
+	Selected.Clear()
+	Selected[0].row = r.row1
+	Selected[0].card = r.thing1
+	Selected[1].row = r.row2
+	Selected[1].card = r.thing2
 }
 
 type BetweenRule struct {
@@ -521,8 +565,17 @@ func (r *BetweenRule) GetAsText() string {
 func (r *BetweenRule) Draw(x, y int32, iconSet *IconSet, h bool) {
 	icon := iconSet.GetLargeIcon(r.row1, r.thing1, h)
 	screen.Draw(x, y, icon)
+	if Selected.Equal(r.row1, r.thing1) {
+		screen.Draw(x, y, iconSet.BorderLarge)
+	}
 	screen.Draw(x+icon.W, y, iconSet.GetLargeIcon(r.centerRow, r.centerThing, h))
+	if Selected.Equal(r.centerRow, r.centerThing) {
+		screen.Draw(x+icon.W, y, iconSet.BorderLarge)
+	}
 	screen.Draw(x+icon.W*2, y, iconSet.GetLargeIcon(r.row2, r.thing2, h))
+	if Selected.Equal(r.row2, r.thing2) {
+		screen.Draw(x+icon.W*2, y, iconSet.BorderLarge)
+	}
 	arrow := iconSet.GetBetweenArrow(h)
 	screen.Draw(x+icon.W-(arrow.W-icon.W)/2, y+0, arrow)
 }
@@ -590,6 +643,16 @@ func (r *BetweenRule) ApplyHint(pos *Possibilities, re RuleExcluder) bool {
 		}
 	}
 	return out
+}
+
+func (r *BetweenRule) OnMouseMove() {
+	Selected.Clear()
+	Selected[0].row = r.row1
+	Selected[0].card = r.thing1
+	Selected[1].row = r.row2
+	Selected[1].card = r.thing2
+	Selected[2].row = r.centerRow
+	Selected[2].card = r.centerThing
 }
 
 func GenRule(puzzle *SolvedPuzzle, rand *rand.Rand) Ruler {

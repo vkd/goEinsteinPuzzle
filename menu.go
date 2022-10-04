@@ -38,7 +38,7 @@ func NewNewGameCommand(a *Area) *NewGameCommand {
 }
 
 func (n *NewGameCommand) DoAction() {
-	game := NewGame()
+	game = NewGame()
 	game.Run()
 	n.area.UpdateMouse()
 	n.area.Draw()
@@ -57,7 +57,7 @@ func NewLoadGameCommand(a *Area) *LoadGameCommand {
 }
 
 func (l *LoadGameCommand) DoAction() {
-	game := LoadGame(l.area)
+	game = LoadGame(l.area)
 	if game != nil {
 		game.Run()
 		game.Close()

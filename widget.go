@@ -386,6 +386,7 @@ func (a *Area) Run() {
 			a.HandleEvent(event)
 		}
 		if !a.terminate {
+			a.Draw()
 			screen.ShowMouse()
 			screen.Flush()
 		}
